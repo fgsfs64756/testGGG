@@ -20,6 +20,20 @@ def start(message):
     )
 
 
+@bot.message_handler(commands=["end"])
+def end_game(message):
+    chat_id = message.chat.id
+
+    if chat_id not in games:
+        bot.send_message(chat_id, "Игра ещё не начата.")
+        return
+
+    secret = games[chat_id]
+    bot.send_message(chat_id, f"🏳️ Ты сдался! Правильное число: {secret}")
+
+    del games[chat_id]
+
+
 @bot.message_handler(func=lambda message: True)
 def guess(message):
     chat_id = message.chat.id
