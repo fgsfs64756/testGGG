@@ -6,6 +6,7 @@ TOKEN = "ВСТАВЬ_НОВЫЙ_ТОКЕН"
 
 bot = telebot.TeleBot(TOKEN)
 games = {}
+game_history = {}
 
 
 def start_game(message):
@@ -13,7 +14,9 @@ def start_game(message):
     games[chat_id] = {"number": random.randint(1, 100), "attempts": 0}
 
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add(types.KeyboardButton("🎮 Новая игра"))
+    keyboard.row(
+        types.KeyboardButton("🎮 Новая игра"), types.KeyboardButton("📜 История")
+    )
 
     bot.send_message(
         chat_id,
@@ -50,6 +53,25 @@ def new_game(message):
     start_game(message)
 
 
+@bot.message_handler(func=lambda message: message.text == "📜 История")
+def history(message):
+    chat_id = message.chat.id
+    records = game_history.get(chat_id, [])
+
+    if not records:
+        bot.send_message(
+            chat_id, "📜 История пока пуста. Сначала сыграй и угадай число!"
+        )
+        return
+
+    text = "📜 Последние игры:\n\n"
+
+    for i, game in enumerate(reversed(records), 1):
+        text += f"{i}. Число: {game['number']} — попыток: {game['attempts']}\n"
+
+    bot.send_message(chat_id, text)
+
+
 @bot.message_handler(func=lambda message: True)
 def guess(message):
     chat_id = message.chat.id
@@ -64,6 +86,10 @@ def guess(message):
         bot.send_message(chat_id, "❌ Напиши число.")
         return
 
+    if not 1 <= number <= 100:
+        bot.send_message(chat_id, "❌ Введи число от 1 до 100.")
+        return
+
     secret = games[chat_id]["number"]
     games[chat_id]["attempts"] += 1
 
@@ -75,6 +101,12 @@ def guess(message):
 
     else:
         attempts = games[chat_id]["attempts"]
+
+        game_history.setdefault(chat_id, []).append(
+            {"number": secret, "attempts": attempts}
+        )
+
+        game_history[chat_id] = game_history[chat_id][-10:]
 
         bot.send_message(
             chat_id,
