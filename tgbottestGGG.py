@@ -1,23 +1,32 @@
 import random
 import telebot
+from telebot import types
 
-TOKEN = "8922413193:AAGsdLoId3VpvCZK8PVCY6L4YDrr-5g_Vmo"
+TOKEN = "ВСТАВЬ_НОВЫЙ_ТОКЕН"
 
 bot = telebot.TeleBot(TOKEN)
-
 games = {}
+
+
+def start_game(message):
+    chat_id = message.chat.id
+    games[chat_id] = {"number": random.randint(1, 100), "attempts": 0}
+
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add(types.KeyboardButton("🎮 Новая игра"))
+
+    bot.send_message(
+        chat_id,
+        "🎮 Игра «Угадай число» — версия 5!\n"
+        "Я загадал число от 1 до 100.\n"
+        "Попробуй угадать его!",
+        reply_markup=keyboard,
+    )
 
 
 @bot.message_handler(commands=["start"])
 def start(message):
-    games[message.chat.id] = {"number": random.randint(1, 100), "attempts": 0}
-
-    bot.send_message(
-        message.chat.id,
-        "🎮 Игра «Угадай число» — версия 3!"
-        "Я загадал число от 1 до 100.\n"
-        "Попробуй угадать его!",
-    )
+    start_game(message)
 
 
 @bot.message_handler(commands=["hint"])
@@ -36,6 +45,11 @@ def hint(message):
         bot.send_message(chat_id, "💡 Подсказка: моё число — нечётное.")
 
 
+@bot.message_handler(func=lambda message: message.text == "🎮 Новая игра")
+def new_game(message):
+    start_game(message)
+
+
 @bot.message_handler(func=lambda message: True)
 def guess(message):
     chat_id = message.chat.id
@@ -46,7 +60,7 @@ def guess(message):
 
     try:
         number = int(message.text)
-    except ValueError:
+    except (ValueError, TypeError):
         bot.send_message(chat_id, "❌ Напиши число.")
         return
 
@@ -62,14 +76,14 @@ def guess(message):
     else:
         attempts = games[chat_id]["attempts"]
 
-    bot.send_message(
-        chat_id,
-        f"🎉 Правильно! Я загадал число {secret}.\n"
-        f"🔢 Количество попыток: {attempts}\n\n"
-        "Напиши /start, чтобы сыграть ещё раз.",
-    )
+        bot.send_message(
+            chat_id,
+            f"🎉 Правильно! Я загадал число {secret}.\n"
+            f"🔢 Количество попыток: {attempts}\n\n"
+            "Нажми «🎮 Новая игра», чтобы сыграть ещё раз.",
+        )
 
-    del games[chat_id]
+        del games[chat_id]
 
 
 print("Бот запущен...")
